@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sstream>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -11,10 +12,10 @@ using namespace std;
 
 long long string_to_bit(const string &str) // transfer hex-string to bit
 {
+  long long result;
 
-  long long result = strtoll(
-      str.c_str(), NULL,
-      16); //第三个参数base为合法字符范围，base=2,为0、1，base=16，合法字符则为0-F，开头的0x自动忽略
+  result = strtoll(str.c_str(), NULL, 16);
+  //     //第三个参数base为合法字符范围，base=2,为0、1，base=16，合法字符则为0-F，开头的0x自动忽略
   return result;
 }
 struct Oid {
@@ -26,7 +27,8 @@ bool operator==(const Oid &lfs, const Oid &rfs) { return lfs.hash == rfs.hash; }
 
 template <> struct std::hash<Oid> {
   size_t operator()(const Oid &__val) const noexcept {
-    return static_cast<size_t>(string_to_bit(__val.hash));
+    // return string_to_bit(__val.hash);
+    return hash<string>()(__val.hash);
   }
 };
 
@@ -41,8 +43,9 @@ struct CommitNode {
   friend ostream &operator<<(ostream &os, CommitNode n);
 };
 ostream &operator<<(ostream &os, CommitNode n) {
-  os << n.inDegree << "\t" << n.outDegree << "\t" << n._hash.hash << "\t"
-     << n.parentCnt << endl;
+  // os << n.inDegree << "\t" << n.outDegree << "\t" << n._hash.hash << "\t"
+  //  << n.parentCnt << endl;
+  os << n._hash.hash << std::endl;
   return os;
 }
 
@@ -94,6 +97,29 @@ vector<string> getParentsHashFromSubHash(string subHash) {
   return v;
 }
 
+void topoOrder(unordered_map<Oid, CommitNode *, hash<Oid>> &commit_map) {
+  queue<Oid> q;
+  for (auto &&pai : commit_map) {
+    if (pai.second->inDegree == 0) {
+      q.push(pai.first);
+    }
+  }
+  while (!q.empty()) {
+    auto oid = q.front();
+    auto Node = commit_map[oid];
+    std::cout << *Node << std::endl;
+    q.pop();
+    commit_map.erase(oid);
+    for (int i = 0; i < Node->parentCnt; i++) {
+      /* 父节点减少入度 */
+      /* 如果入度为0再入队 */
+      if (!--Node->parentNode[i]->inDegree) {
+        q.push(Node->parentNode[i]->_hash);
+      }
+    }
+  }
+}
+
 int main(int argc, char const *argv[]) {
 
   unordered_map<Oid, CommitNode *, hash<Oid>> commit_map;
@@ -115,15 +141,7 @@ int main(int argc, char const *argv[]) {
       pNode->inDegree++;
     }
   }
-
-  cout << "inDegree\t"
-     << "outDegree\t"
-     << "oid\t"
-     << "parentCnt\t" << std::endl;
-
-  for (auto &&i : commit_map) {
-    std::cout << *(i.second) << std::endl;
-  }
+  topoOrder(commit_map);
 
   return 0;
 }
