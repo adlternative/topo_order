@@ -15,7 +15,6 @@ long long string_to_bit(const string &str) // transfer hex-string to bit
   long long result;
 
   result = strtoll(str.c_str(), NULL, 16);
-  //     //第三个参数base为合法字符范围，base=2,为0、1，base=16，合法字符则为0-F，开头的0x自动忽略
   return result;
 }
 struct Oid {
@@ -38,7 +37,8 @@ struct CommitNode {
   int outDegree;
   Oid _hash;
   int parentCnt;
-  CommitNode *parentNode[2];
+  shared_ptr<CommitNode> parentNode[2];
+  void nodePrintCool();
   friend bool operator==(const CommitNode &lfs, const CommitNode &rfs);
   friend ostream &operator<<(ostream &os, CommitNode n);
 };
@@ -59,6 +59,10 @@ template <> struct std::hash<CommitNode> {
   }
 };
 
+void CommitNode::nodePrintCool() {
+  ;
+  ;
+}
 vector<string> getAllHashCodeOfCommits() {
   vector<string> v;
   FILE *fp = popen("git log --oneline --pretty=format:'%H'", "r");
@@ -97,7 +101,8 @@ vector<string> getParentsHashFromSubHash(string subHash) {
   return v;
 }
 
-void topoOrder(unordered_map<Oid, CommitNode *, hash<Oid>> &commit_map) {
+void topoOrder(
+    unordered_map<Oid, shared_ptr<CommitNode>, hash<Oid>> &commit_map) {
   queue<Oid> q;
   for (auto &&pai : commit_map) {
     if (pai.second->inDegree == 0) {
@@ -108,6 +113,7 @@ void topoOrder(unordered_map<Oid, CommitNode *, hash<Oid>> &commit_map) {
     auto oid = q.front();
     auto Node = commit_map[oid];
     std::cout << *Node << std::endl;
+
     q.pop();
     commit_map.erase(oid);
     for (int i = 0; i < Node->parentCnt; i++) {
@@ -122,10 +128,11 @@ void topoOrder(unordered_map<Oid, CommitNode *, hash<Oid>> &commit_map) {
 
 int main(int argc, char const *argv[]) {
 
-  unordered_map<Oid, CommitNode *, hash<Oid>> commit_map;
+  unordered_map<Oid, shared_ptr<CommitNode>, hash<Oid>> commit_map;
   auto commits = getAllHashCodeOfCommits(); /* 获取所有git提交的hash值 */
   for (auto &&oid : commits) {
-    commit_map[oid] = new CommitNode(oid); /* 将hash<--->节点建立映射关系 */
+    commit_map[oid] =
+        make_shared<CommitNode>(oid); /* 将hash<--->节点建立映射关系 */
   }
 
   for (auto &&subHash : commits) { /* 对于每次的子提交, */
