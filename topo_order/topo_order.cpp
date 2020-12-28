@@ -17,7 +17,6 @@ long long string_to_bit(const string &str) // transfer hex-string to bit
       16); //第三个参数base为合法字符范围，base=2,为0、1，base=16，合法字符则为0-F，开头的0x自动忽略
   return result;
 }
-
 struct Oid {
   Oid(std::string hs) : hash(hs) {}
   std::string hash;
@@ -42,8 +41,8 @@ struct CommitNode {
   friend ostream &operator<<(ostream &os, CommitNode n);
 };
 ostream &operator<<(ostream &os, CommitNode n) {
-  os << n.inDegree << " " << n.outDegree << " " << n._hash.hash << " "
-     << n.parentCnt << " ";
+  os << n.inDegree << "\t" << n.outDegree << "\t" << n._hash.hash << "\t"
+     << n.parentCnt << endl;
   return os;
 }
 
@@ -56,11 +55,6 @@ template <> struct std::hash<CommitNode> {
     return hash<Oid>()(__val._hash);
   }
 };
-// template <> struct hash<CommitNode *> {
-//   size_t operator()(CommitNode *__val) const noexcept {
-//     return hash<Oid>()(__val->_hash);
-//   }
-// };
 
 vector<string> getAllHashCodeOfCommits() {
   vector<string> v;
@@ -101,7 +95,6 @@ vector<string> getParentsHashFromSubHash(string subHash) {
 }
 
 int main(int argc, char const *argv[]) {
-  // unordered_set<CommitNode, std::hash<CommitNode>> commit_set;
 
   unordered_map<Oid, CommitNode *, hash<Oid>> commit_map;
   auto commits = getAllHashCodeOfCommits(); /* 获取所有git提交的hash值 */
@@ -122,6 +115,12 @@ int main(int argc, char const *argv[]) {
       pNode->inDegree++;
     }
   }
+
+  cout << "inDegree\t"
+     << "outDegree\t"
+     << "oid\t"
+     << "parentCnt\t" << std::endl;
+
   for (auto &&i : commit_map) {
     std::cout << *(i.second) << std::endl;
   }
